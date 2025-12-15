@@ -3,14 +3,8 @@
 
 <!-- Badges-->
 <p align="center">
-  <a href="https://pub.dartlang.org/packages/dartssh2">
-    <img src="https://img.shields.io/pub/v/dartssh2.svg" alt="DartSSH2 package version on Pub">
-  </a>
-  <a href="https://www.dartdocs.org/documentation/dartssh2/latest/">
-    <img src="https://img.shields.io/badge/Docs-dartssh2-blue.svg" alt="DartSSH2 documentation">
-  </a>
-  <a href="https://github.com/TerminalStudio/dartssh2/actions/workflows/dart.yml">
-    <img src="https://github.com/TerminalStudio/dartssh2/actions/workflows/dart.yml/badge.svg" alt="DartSSH2 GitHub Actions workflow status">
+  <a href="https://github.com/ShellWayz/dartssh2/actions/workflows/dart.yml">
+    <img src="https://github.com/ShellWayz/dartssh2/actions/workflows/dart.yml/badge.svg" alt="DartSSH2 GitHub Actions workflow status">
   </a>
   <a href="https://ko-fi.com/F1F61K6BL">
     <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-F16061?style=flat&logo=buy-me-a-coffee&logoColor=white&labelColor=555555" alt="Support me on Ko-fi">
@@ -52,8 +46,8 @@ SSH and SFTP client written in pure Dart, aiming to be feature-rich as well as e
   <tr> 
     <!-- ServerBox -->
     <td>
-      <img src="https://raw.githubusercontent.com/TerminalStudio/dartssh2/master/media/showcase-1-serverbox.1.jpg" width="150px" alt="ServerBox interface displaying connection management options">
-      <img src="https://raw.githubusercontent.com/TerminalStudio/dartssh2/master/media/showcase-1-serverbox.2.png" width="150px" alt="ServerBox user interface for server control and monitoring">
+      <img src="https://raw.githubusercontent.com/ShellWayz/dartssh2/master/media/showcase-1-serverbox.1.jpg" width="150px" alt="ServerBox interface displaying connection management options">
+      <img src="https://raw.githubusercontent.com/ShellWayz/dartssh2/master/media/showcase-1-serverbox.2.png" width="150px" alt="ServerBox user interface for server control and monitoring">
     </td>
     <!-- NoPorts -->
     <td>
@@ -199,6 +193,37 @@ void main() async {
     connection.stream.cast<List<int>>().pipe(socket);
     socket.pipe(connection.sink);
   }
+}
+```
+
+### Create a SOCKS5 server on port 1080 and forward network traffic through an SSH tunnel using dynamic port forwarding
+
+```dart
+Future<void> main() async {
+  final socket = await SSHSocket.connect('localhost', 22);
+
+  final client = SSHClient(
+    socket,
+    username: 'root',
+    onPasswordRequest: () {
+      stdout.write('Password: ');
+      stdin.echoMode = false;
+      return stdin.readLineSync() ?? exit(1);
+    },
+  );
+
+  await client.authenticated;
+
+  final serverSocket = await ServerSocket.bind('127.0.0.1', 1080);
+
+  print('Listening on ${serverSocket.address.address}:${serverSocket.port}');
+
+  await for (final socket in serverSocket) {
+    unawaited(client.forwardDynamic(socket));
+  }
+
+  client.close();
+  await client.done;
 }
 ```
 
@@ -399,20 +424,21 @@ void main() async {
 
 ### SSH client:
 
-- [example/example.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/example.dart)
-- [example/execute.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/execute.dart)
-- [example/forward_local.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/forward_local.dart)
-- [example/forward_remote.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/forward_remote.dart)
-- [example/pubkey.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/pubkey.dart)
-- [example/shell.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/shell.dart)
-- [example/ssh_jump.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/ssh_jump.dart)
+- [example/example.dart](./example/example.dart)
+- [example/execute.dart](./example/execute.dart)
+- [example/forward_local.dart](./example/forward_local.dart)
+- [example/forward_remote.dart](./example/forward_remote.dart)
+- [example/forward_dynamic.dart](./example/forward_dynamic.dart)
+- [example/pubkey.dart](./example/pubkey.dart)
+- [example/shell.dart](./example/shell.dart)
+- [example/ssh_jump.dart](./example/ssh_jump.dart)
 
 ### SFTP:
-- [example/sftp_read.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/sftp_read.dart)
-- [example/sftp_list.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/sftp_list.dart)
-- [example/sftp_stat.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/sftp_stat.dart)
-- [example/sftp_upload.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/sftp_upload.dart)
-- [example/sftp_filetype.dart](https://github.com/TerminalStudio/dartssh2/blob/master/example/sftp_filetype.dart)
+- [example/sftp_read.dart](./example/sftp_read.dart)
+- [example/sftp_list.dart](./example/sftp_list.dart)
+- [example/sftp_stat.dart](./example/sftp_stat.dart)
+- [example/sftp_upload.dart](./example/sftp_upload.dart)
+- [example/sftp_filetype.dart](./example/sftp_filetype.dart)
 
 
 
