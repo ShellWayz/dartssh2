@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dartssh2/src/http/http_client.dart';
@@ -21,6 +22,7 @@ import 'package:dartssh2/src/message/msg_userauth.dart';
 import 'package:dartssh2/src/ssh_message.dart';
 import 'package:dartssh2/src/socket/ssh_socket.dart';
 import 'package:dartssh2/src/ssh_userauth.dart';
+import 'package:dartssh2/src/socks5.dart';
 import 'package:meta/meta.dart';
 
 /// https://datatracker.ietf.org/doc/html/rfc4252#section-8
@@ -295,6 +297,77 @@ class SSHClient {
       remotePort,
     );
     return SSHForwardChannel(channelController.channel);
+  }
+
+  /// Forwards incoming connections from a SOCKS5 client over this SSH session
+  /// using *dynamic port forwarding*.
+  ///
+  /// This method implements a minimal SOCKS5 server on top of the provided
+  /// [socket]. For each incoming SOCKS5 `CONNECT` request, a corresponding
+  /// `direct-tcpip` channel is opened through the SSH connection to the
+  /// requested destination host and port.
+  ///
+  /// The SSH client acts as a transparent proxy:
+  /// - The destination address is determined dynamically by the SOCKS5 client.
+  /// - All traffic is relayed bidirectionally between the SOCKS5 client and
+  ///   the SSH forward channel.
+  ///
+  /// Only the `CONNECT` command and the following address types are supported:
+  /// - IPv4
+  /// - Domain name
+  /// - IPv6
+  ///
+  /// Authentication methods other than "no authentication" are not supported.
+  /// UDP and BIND commands are not implemented.
+  ///
+  /// The connection is closed gracefully when either side closes the stream.
+  ///
+  /// This method is typically used together with a [ServerSocket] to create
+  /// a local SOCKS5 proxy:
+  ///
+  /// ```dart
+  /// final server = await ServerSocket.bind('127.0.0.1', 1080);
+  /// await for (final socket in server) {
+  ///   unawaited(client.forwardDynamic(socket));
+  /// }
+  /// ```
+  Future<void> forwardDynamic(Socket socket) async {
+    final session = Socks5Session(socket);
+
+    try {
+      // 1. Handshake + CONNECT
+      final req = await session.accept();
+
+      SSHForwardChannel forward;
+
+      try {
+        forward = await forwardLocal(req.host, req.port);
+      } on SSHChannelOpenError catch (_) {
+        // SSH cannot reach destination
+        await session.replyError(Socks5Reply.hostUnreachable.code);
+        socket.destroy();
+        return;
+      } on Exception catch (_) {
+        await session.replyError(Socks5Reply.generalFailure.code);
+        socket.destroy();
+        return;
+      }
+
+      // 2. Success reply
+      await session.replySuccess();
+
+      // 3. Relay traffic
+      await session.relay(forward);
+    } on FormatException catch (_) {
+      // Invalid SOCKS packet
+      await session.replyError(Socks5Reply.generalFailure.code);
+      socket.destroy();
+    } on SocketException {
+      socket.destroy();
+    } catch (e, _) {
+      // Unexpected error – never crash server
+      socket.destroy();
+    }
   }
 
   /// Execute [command] on the remote side. Returns a [SSHChannel] that can be
