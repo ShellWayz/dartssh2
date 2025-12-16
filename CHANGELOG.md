@@ -1,3 +1,6 @@
+## [3.0.0] - 2025-12-16
+- Add SOCKS5 dynamic port forwarding support
+
 ## [2.13.0] - 2025-06-22
 - docs: Update NoPorts naming [#115]. [@XavierChanth].
 - Add parameter disableHostkeyVerification [#123]. Thanks [@alexander-irion].
