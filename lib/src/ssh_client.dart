@@ -143,6 +143,10 @@ class SSHClient {
   /// true if the connection is closed normally or due to an error.
   bool get isClosed => _transport.isClosed;
 
+  /// Identification string advertised during the SSH version exchange (the part
+  /// after `SSH-2.0-`). Defaults to `'DartSSH_2.0'`
+  final String ident;
+
   SSHClient(
     this.socket, {
     required this.username,
@@ -158,6 +162,7 @@ class SSHClient {
     this.onAuthenticated,
     this.keepAliveInterval = const Duration(seconds: 10),
     this.disableHostkeyVerification = false,
+    this.ident = 'DartSSH_2.0',
   }) {
     _transport = SSHTransport(
       socket,
@@ -169,6 +174,7 @@ class SSHClient {
       onReady: _handleTransportReady,
       onPacket: _handlePacket,
       disableHostkeyVerification: disableHostkeyVerification,
+      version: ident,
     );
 
     _transport.done.then(
