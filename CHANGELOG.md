@@ -1,3 +1,6 @@
+## [2.17.1-swz.1] - 2026-05-16
+- First Shellwayz fork release
+
 ## [2.17.1] - 2026-04-12
 - Made `SSHPem.decode` accept CRLF (`\r\n`) line endings in addition to LF when parsing PEM content [#157]. Thanks [@gkc].
 
